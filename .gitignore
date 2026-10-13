@@ -1,0 +1,15 @@
+node_modules
+dist
+.output
+.vinxi
+.tanstack
+.nitro
+.vercel
+*.log
+.env
+.env.*
+.DS_Store
+screenshots
+coverage
+.grok/og-pending
+.grok/favicon-preview.html

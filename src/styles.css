@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --wa-green: #008069;
+  --wa-green-2: #00a884;
+  --wa-shell: #d1d7db;
+  --wa-panel: #ffffff;
+  --wa-header: #f0f2f5;
+  --wa-chat: #efeae2;
+  --wa-in: #ffffff;
+  --wa-out: #d9fdd3;
+  --wa-ink: #111b21;
+  --wa-muted: #667781;
+  --wa-line: #e9edef;
+  --wa-hover: #f5f6f6;
+  --wa-active: #f0f2f5;
+  --wa-unread: #25d366;
+  --wa-tick: #53bdeb;
+  --wa-danger: #ea0038;
+  --wa-compose: #ffffff;
+  --wa-on: #ffffff;
+  --wa-chip: #ffffff;
+  color-scheme: light;
+}
+
+.dark {
+  --wa-green: #00a884;
+  --wa-green-2: #00a884;
+  --wa-shell: #0b141a;
+  --wa-panel: #111b21;
+  --wa-header: #202c33;
+  --wa-chat: #0b141a;
+  --wa-in: #202c33;
+  --wa-out: #005c4b;
+  --wa-ink: #e9edef;
+  --wa-muted: #8696a0;
+  --wa-line: #2a3942;
+  --wa-hover: #202c33;
+  --wa-active: #2a3942;
+  --wa-unread: #25d366;
+  --wa-tick: #53bdeb;
+  --wa-danger: #f15c6d;
+  --wa-compose: #2a3942;
+  --wa-on: #111b21;
+  --wa-chip: #2a3942;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Vazirmatn", "Noto Naskh Arabic", "Noto Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --color-green: var(--wa-green);
+  --color-green-2: var(--wa-green-2);
+  --color-shell: var(--wa-shell);
+  --color-panel: var(--wa-panel);
+  --color-header: var(--wa-header);
+  --color-chat: var(--wa-chat);
+  --color-in: var(--wa-in);
+  --color-out: var(--wa-out);
+  --color-ink: var(--wa-ink);
+  --color-muted: var(--wa-muted);
+  --color-line: var(--wa-line);
+  --color-hover: var(--wa-hover);
+  --color-active: var(--wa-active);
+  --color-unread: var(--wa-unread);
+  --color-tick: var(--wa-tick);
+  --color-danger: var(--wa-danger);
+  --color-compose: var(--wa-compose);
+  --color-on: var(--wa-on);
+  --color-chip: var(--wa-chip);
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--wa-shell);
+    color: var(--wa-ink);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  input,
+  textarea {
+    font-family: inherit;
+  }
+}
+
+.wallpaper {
+  background-color: var(--wa-chat);
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in oklab, var(--wa-ink) 8%, transparent) 1px,
+    transparent 0
+  );
+  background-size: 20px 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
