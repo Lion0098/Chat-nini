@@ -1,0 +1,15 @@
+RewriteEngine On
+RewriteCond %{HTTP:Authorization} ^(.+)$
+RewriteRule ^ - [E=HTTP_AUTHORIZATION:%1]
+SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
+RewriteRule ^lib/ - [F,L]
+RewriteRule ^storage/ - [F,L]
+RewriteRule ^config\.php$ - [F,L]
+RewriteRule ^cron/ - [F,L]
+RewriteRule ^api(/.*)?$ api/index.php [QSA,L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.html [L]
+
+<FilesMatch "\.(sqlite|log|part)$">
+  Require all denied
+</FilesMatch>

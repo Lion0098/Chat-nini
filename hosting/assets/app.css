@@ -1,0 +1,175 @@
+:root {
+  --green: #008069;
+  --green-2: #00a884;
+  --shell: #d1d7db;
+  --panel: #fff;
+  --header: #f0f2f5;
+  --chat: #efeae2;
+  --in: #fff;
+  --out: #d9fdd3;
+  --ink: #111b21;
+  --muted: #667781;
+  --line: #e9edef;
+  --hover: #f5f6f6;
+  --unread: #25d366;
+  --tick: #53bdeb;
+  --danger: #ea0038;
+  --on: #fff;
+  color-scheme: light;
+}
+html.dark {
+  --green: #00a884;
+  --shell: #0b141a;
+  --panel: #111b21;
+  --header: #202c33;
+  --chat: #0b141a;
+  --in: #202c33;
+  --out: #005c4b;
+  --ink: #e9edef;
+  --muted: #8696a0;
+  --line: #2a3942;
+  --hover: #202c33;
+  --danger: #f15c6d;
+  --on: #111b21;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: Vazirmatn, Tahoma, sans-serif;
+  background: var(--shell);
+  color: var(--ink);
+}
+button, [role="button"] { cursor: pointer; font-family: inherit; }
+input, textarea, select { font-family: inherit; color: inherit; }
+#root { height: 100dvh; }
+.auth {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.card {
+  width: min(440px, 100%);
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.12);
+}
+.row { display: flex; gap: 8px; align-items: center; }
+.grow { flex: 1; min-width: 0; }
+h1 { font-size: 22px; margin: 0 0 8px; }
+.muted { color: var(--muted); font-size: 13px; }
+label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0; }
+input, textarea, select {
+  width: 100%;
+  border: 0;
+  background: var(--header);
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+}
+textarea { resize: none; }
+.btn {
+  height: 42px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--green);
+  color: #fff;
+  font-weight: 600;
+  padding: 0 16px;
+}
+.btn.ghost { background: var(--header); color: var(--ink); }
+.btn.full { width: 100%; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--header); border-radius: 999px; padding: 4px; margin: 12px 0; }
+.tabs button { border: 0; background: transparent; border-radius: 999px; height: 36px; color: inherit; }
+.tabs button.on { background: var(--panel); font-weight: 600; }
+.shell { height: 100dvh; display: flex; justify-content: center; padding: 0; }
+@media (min-width: 900px) {
+  .shell { padding: 18px; }
+  .frame { border-radius: 10px; box-shadow: 0 16px 50px rgba(0,0,0,.2); overflow: hidden; position: relative; }
+  .shell::before { content: ""; position: fixed; inset: 0 0 auto 0; height: 127px; background: var(--green); }
+}
+.frame { position: relative; z-index: 1; display: flex; width: min(1120px, 100%); height: 100%; background: var(--panel); }
+.side { width: 100%; display: flex; flex-direction: column; min-width: 0; }
+.main { display: none; flex: 1; min-width: 0; flex-direction: column; position: relative; background: var(--chat); }
+.frame.show-chat .side { display: none; }
+.frame.show-chat .main { display: flex; }
+@media (min-width: 900px) {
+  .side { width: 400px; border-inline-end: 1px solid var(--line); }
+  .main { display: flex; }
+  .frame.show-chat .side { display: flex; }
+}
+.head { height: 56px; display: flex; align-items: center; gap: 8px; padding: 0 10px; background: var(--header); }
+.avatar, .av {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--header); color: var(--muted);
+  font-weight: 700; overflow: hidden; flex: none; border: 0; padding: 0;
+}
+.avatar img, .av img { width: 100%; height: 100%; object-fit: cover; }
+.icon {
+  width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; color: var(--muted);
+}
+.search { margin: 8px 12px; }
+.statuses { display: flex; gap: 10px; overflow-x: auto; padding: 0 12px 8px; }
+.statuses button { border: 0; background: transparent; color: inherit; width: 68px; font-size: 11px; }
+.ring { width: 48px; height: 48px; border-radius: 50%; padding: 2px; border: 2px solid var(--green-2); }
+.ring.seen { border-color: var(--line); }
+.chats { overflow: auto; flex: 1; }
+.chat {
+  width: 100%; display: flex; gap: 10px; align-items: center; text-align: start;
+  border: 0; background: transparent; color: inherit; padding: 8px 12px;
+}
+.chat.on, .chat:hover { background: var(--hover); }
+.chat .meta { display: flex; justify-content: space-between; gap: 8px; }
+.chat .sub { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.badge { min-width: 20px; height: 20px; border-radius: 999px; background: var(--unread); color: #073; font-size: 12px; display: grid; place-items: center; padding: 0 6px; }
+.wallpaper {
+  flex: 1; overflow: auto; padding: 12px;
+  background-color: var(--chat);
+  background-image: radial-gradient(circle at 1px 1px, color-mix(in oklab, var(--ink) 8%, transparent) 1px, transparent 0);
+  background-size: 18px 18px;
+}
+.bubble { max-width: min(78%, 520px); border-radius: 8px; padding: 6px 8px; margin: 3px 0; box-shadow: 0 1px 0 rgba(0,0,0,.04); }
+.mine { margin-inline-start: auto; background: var(--out); }
+.theirs { background: var(--in); }
+.bubble p { margin: 0; white-space: pre-wrap; word-break: break-word; }
+.ticks { display: flex; justify-content: flex-end; gap: 4px; font-size: 11px; color: var(--muted); }
+.ticks .blue { color: var(--tick); }
+.media { max-width: 100%; max-height: 280px; border-radius: 8px; display: block; }
+.compose { display: flex; gap: 6px; align-items: flex-end; padding: 8px; background: var(--header); }
+.compose textarea { flex: 1; min-height: 42px; max-height: 120px; }
+.menu, .sheet, .overlay {
+  position: absolute; z-index: 5; background: var(--panel); box-shadow: 0 10px 30px rgba(0,0,0,.18);
+}
+.menu { top: 52px; inset-inline-end: 8px; border-radius: 10px; min-width: 200px; padding: 6px; }
+.menu button, .listbtn {
+  display: block; width: 100%; text-align: start; border: 0; background: transparent; color: inherit;
+  padding: 10px 12px; border-radius: 8px;
+}
+.menu button:hover, .listbtn:hover { background: var(--hover); }
+.overlay { inset: 0; z-index: 6; display: flex; flex-direction: column; }
+.overlay .body { overflow: auto; padding: 12px 16px 24px; }
+.picker { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; padding: 8px; background: var(--panel); }
+.picker button { border: 0; background: transparent; font-size: 22px; height: 36px; }
+.toast {
+  position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+  background: var(--panel); color: var(--ink); border-radius: 999px; padding: 8px 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.2); z-index: 20;
+}
+.empty { margin: auto; text-align: center; color: var(--muted); padding: 24px; }
+.map { width: 100%; height: 160px; border: 0; border-radius: 8px; }
+.actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.actions button { border: 0; background: var(--header); border-radius: 999px; padding: 4px 8px; font-size: 11px; color: inherit; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--unread); position: absolute; inset-inline-end: 0; bottom: 0; border: 2px solid var(--panel); }
+.rel { position: relative; }
+.linkcard { display: block; background: color-mix(in oklab, var(--header) 80%, transparent); border-radius: 8px; padding: 6px; margin-bottom: 4px; color: inherit; text-decoration: none; font-size: 12px; }
+.danger { color: var(--danger); }
+input[type="checkbox"] { width: auto; }
+label.chk { display: flex; align-items: center; gap: 8px; }
+.quote { border-inline-start: 3px solid var(--green-2); padding: 4px 8px; margin-bottom: 4px; font-size: 12px; color: var(--muted); background: color-mix(in oklab, var(--header) 75%, transparent); border-radius: 6px; }
+.replybar { display: flex; gap: 8px; align-items: center; padding: 6px 10px; background: var(--panel); border-top: 1px solid var(--line); font-size: 13px; }
+.replybar button { border: 0; background: transparent; color: var(--green); }
+.offline { background: #f59e0b; color: #111; text-align: center; font-size: 12px; padding: 4px 8px; }
+.av.lg { width: 72px; height: 72px; font-size: 28px; margin: 8px 0; }
+h3 { font-size: 15px; margin: 16px 0 8px; }

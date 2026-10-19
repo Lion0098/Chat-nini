@@ -1,0 +1,11 @@
+{
+  "name": "چت‌نینی",
+  "short_name": "چت‌نینی",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111b21",
+  "theme_color": "#008069",
+  "lang": "fa",
+  "dir": "rtl",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

@@ -13,3 +13,7 @@ screenshots
 coverage
 .grok/og-pending
 .grok/favicon-preview.html
+.tools/
+hosting/storage/*
+!hosting/storage/.htaccess
+hosting/config.php
