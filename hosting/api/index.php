@@ -54,8 +54,10 @@ function dispatch(string $method, string $path): void
         set_avatar($user);
     }
     if ($method === 'POST' && $path === '/me/avatar/delete') {
-        db()->exec('UPDATE users SET avatar_file = NULL WHERE id = ?', [(int) $user['id']]);
-        ok(true);
+        clear_avatar($user);
+    }
+    if ($method === 'POST' && $path === '/me/password') {
+        change_password($user);
     }
     if ($method === 'POST' && $path === '/me/2fa') {
         $on = !empty(body()['enabled']);
@@ -204,7 +206,7 @@ function register(): void
     }
     $b = body();
     $email = strtolower(clean($b['email'] ?? '', 120));
-    $phone = clean($b['phone'] ?? '', 16);
+    $phone = normalize_phone(clean($b['phone'] ?? '', 20));
     $username = strtolower(clean($b['username'] ?? '', 24));
     $name = clean($b['displayName'] ?? '', 50);
     $password = (string) ($b['password'] ?? '');
@@ -257,14 +259,18 @@ function login(): void
 {
     rate_limit('login', 12, 600);
     $b = body();
-    $login = strtolower(clean($b['login'] ?? '', 120));
+    $login = trim((string) ($b['login'] ?? ''));
     $password = (string) ($b['password'] ?? '');
-    $user = db()->one('SELECT * FROM users WHERE email = ? OR phone = ? OR username = ?', [$login, $b['login'] ?? '', $login]);
+    $user = find_user_by_login($login);
     if (!$user || !password_verify($password, (string) $user['password_hash'])) {
         fail('auth_failed', 401);
     }
     if ((int) $user['suspended'] === 1) {
         fail('suspended', 403);
+    }
+    if (password_needs_rehash((string) $user['password_hash'], defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT)) {
+        db()->exec('UPDATE users SET password_hash = ? WHERE id = ?', [hash_password($password), (int) $user['id']]);
+        $user = db()->one('SELECT * FROM users WHERE id = ?', [(int) $user['id']]);
     }
     if ((int) $user['two_factor'] === 1) {
         $code = (string) random_int(100000, 999999);
@@ -306,15 +312,8 @@ function forgot(): void
 {
     rate_limit('forgot', 6, 3600);
     $b = body();
-    $login = strtolower(clean($b['login'] ?? $b['email'] ?? '', 120));
-    $phone = clean($b['login'] ?? $b['phone'] ?? '', 16);
-    $user = null;
-    if ($login !== '' && email_ok($login)) {
-        $user = db()->one('SELECT * FROM users WHERE email = ?', [$login]);
-    }
-    if (!$user && phone_ok($phone)) {
-        $user = db()->one('SELECT * FROM users WHERE phone = ?', [$phone]);
-    }
+    $login = trim((string) ($b['login'] ?? $b['email'] ?? $b['phone'] ?? ''));
+    $user = find_user_by_login($login);
     $dev = null;
     if ($user) {
         $token = bin2hex(random_bytes(16));
@@ -379,7 +378,8 @@ function save_me(array $user): void
     }
     $phone = $user['phone'];
     if (array_key_exists('phone', $b)) {
-        $phone = clean($b['phone'], 16);
+        $rawPhone = clean($b['phone'], 20);
+        $phone = $rawPhone === '' ? '' : normalize_phone($rawPhone);
         if ($phone !== '' && !phone_ok($phone)) {
             fail('phone_invalid');
         }
@@ -428,8 +428,78 @@ function set_avatar(array $user): void
     if (!str_starts_with((string) $up['mime'], 'image/')) {
         fail('bad_type');
     }
+    $old = $user['avatar_file'] ?: null;
     db()->exec('UPDATE users SET avatar_file = ? WHERE id = ?', [$file, (int) $user['id']]);
+    if ($old && $old !== $file) {
+        release_file($old);
+    }
     ok(true);
+}
+
+function clear_avatar(array $user): void
+{
+    $old = $user['avatar_file'] ?: null;
+    db()->exec('UPDATE users SET avatar_file = NULL WHERE id = ?', [(int) $user['id']]);
+    if ($old) {
+        release_file($old);
+    }
+    ok(true);
+}
+
+function change_password(array $user): void
+{
+    rate_limit('password', 8, 600);
+    $b = body();
+    $current = (string) ($b['current'] ?? '');
+    $next = (string) ($b['next'] ?? '');
+    if (!password_verify($current, (string) $user['password_hash'])) {
+        fail('bad_password');
+    }
+    if (strlen($next) < 8) {
+        fail('weak_password');
+    }
+    db()->exec('UPDATE users SET password_hash = ? WHERE id = ?', [hash_password($next), (int) $user['id']]);
+    ok(true);
+}
+
+function find_user_by_login(string $raw): ?array
+{
+    $raw = trim($raw);
+    if ($raw === '') {
+        return null;
+    }
+    $lower = strtolower($raw);
+    if (email_ok($lower)) {
+        $user = db()->one('SELECT * FROM users WHERE email = ?', [$lower]);
+        if ($user) {
+            return $user;
+        }
+    }
+    $user = db()->one('SELECT * FROM users WHERE username = ?', [$lower]);
+    if ($user) {
+        return $user;
+    }
+    $phone = normalize_phone($raw);
+    if (!phone_ok($phone)) {
+        return null;
+    }
+    return db()->one('SELECT * FROM users WHERE phone = ? OR phone = ?', [$phone, ltrim($phone, '+')]);
+}
+
+function release_file(string $id): void
+{
+    $used = db()->one('SELECT id FROM users WHERE avatar_file = ?', [$id])
+        || db()->one('SELECT id FROM chats WHERE avatar_file = ?', [$id])
+        || db()->one('SELECT id FROM messages WHERE file_id = ?', [$id])
+        || db()->one('SELECT id FROM statuses WHERE file_id = ?', [$id]);
+    if ($used) {
+        return;
+    }
+    $path = storage_dir('uploads') . '/' . $id;
+    if (is_file($path)) {
+        unlink($path);
+    }
+    db()->exec('DELETE FROM uploads WHERE id = ?', [$id]);
 }
 
 function search_users(array $user): void

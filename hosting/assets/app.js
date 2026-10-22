@@ -20,7 +20,13 @@ const I18N = {
     makeAdmin: "مدیر کردن", remove: "حذف", searchChat: "جستجو در گفتگو", forwarded: "فوروارد شده",
     minutes: "دقیقه", publish: "انتشار", viewers: "دیده‌شده توسط", myStatus: "وضعیت من", install: "نصب برنامه",
     or: "با ایمیل، شماره یا نام کاربری", loginId: "ایمیل، شماره یا نام کاربری",
-    auth_failed: "ورود ناموفق", username_taken: "نام کاربری گرفته شده", weak_password: "رمز کوتاه است",
+    auth_failed: "ورود ناموفق", username_taken: "نام کاربری گرفته شده", weak_password: "رمز باید حداقل ۸ حرف باشد",
+    bad_password: "رمز فعلی درست نیست", bad_token: "کد بازیابی نامعتبر است", login_required: "ایمیل یا شماره لازم است",
+    phone_invalid: "شماره موبایل درست نیست", invalid_email: "ایمیل درست نیست", email_taken: "ایمیل قبلاً ثبت شده",
+    phone_taken: "شماره قبلاً ثبت شده", name_required: "نام لازم است", username_invalid: "نام کاربری فقط حروف کوچک، عدد، نقطه و _ ",
+    removePhoto: "حذف عکس", currentPassword: "رمز فعلی", newPassword: "رمز جدید", confirmPassword: "تکرار رمز",
+    mismatch: "رمز و تکرارش یکی نیست", sentCode: "کد فرستاده شد. اگر ایمیل یا پیامک نرسید، در این پیش‌نمایش کد پایین را بردار",
+    passwordChanged: "رمز عوض شد", needOne: "حداقل ایمیل یا شماره موبایل را بنویس",
     rate: "کمی بعد دوباره تلاش کن", blocked: "مسدود است", blockedList: "مسدودشده‌ها", unarchive: "خروج از بایگانی",
     addMember: "افزودن عضو", groupPhoto: "عکس گروه", gifUrl: "آدرس گیف (https)", offline: "آفلاین — متن در صف می‌ماند",
     adminPanel: "مدیریت سامانه", reports: "گزارش‌ها", signups: "ثبت‌نام باز است", backup: "پشتیبان‌گیری",
@@ -48,7 +54,13 @@ const I18N = {
     makeAdmin: "Make admin", remove: "Remove", searchChat: "Search in chat", forwarded: "Forwarded",
     minutes: "min", publish: "Publish", viewers: "Seen by", myStatus: "My status", install: "Install app",
     or: "Email, phone or username", loginId: "Email, phone or username",
-    auth_failed: "Could not sign in", username_taken: "Username is taken", weak_password: "Password is too short",
+    auth_failed: "Could not sign in", username_taken: "Username is taken", weak_password: "Use at least 8 characters",
+    bad_password: "Current password is wrong", bad_token: "Reset code is invalid", login_required: "Email or phone is required",
+    phone_invalid: "Phone number looks wrong", invalid_email: "Email looks wrong", email_taken: "Email already used",
+    phone_taken: "Phone already used", name_required: "Name is required", username_invalid: "Username: lowercase, digits, . and _",
+    removePhoto: "Remove photo", currentPassword: "Current password", newPassword: "New password", confirmPassword: "Repeat password",
+    mismatch: "Passwords do not match", sentCode: "Code sent. In this preview the code is filled in below",
+    passwordChanged: "Password updated", needOne: "Enter an email or a phone number",
     rate: "Slow down and try again", blocked: "Blocked", blockedList: "Blocked", unarchive: "Unarchive",
     addMember: "Add member", groupPhoto: "Group photo", gifUrl: "GIF https URL", offline: "Offline — text stays queued",
     adminPanel: "Admin", reports: "Reports", signups: "Signups open", backup: "Backup",
@@ -65,6 +77,9 @@ const state = {
   theme: localStorage.getItem("nini_theme") || "light",
   me: null,
   mode: "login",
+  resetSent: false,
+  resetLogin: "",
+  resetToken: "",
   chats: [],
   archivedChats: [],
   chatCache: null,
@@ -135,12 +150,12 @@ async function api(path, body, method) {
     throw new Error("offline");
   }
   const data = await res.json().catch(() => ({ ok: false, error: "server" }));
-  if (res.status === 401) {
+  if (res.status === 401 && state.token && !path.startsWith("/auth/")) {
     state.token = "";
     localStorage.removeItem("nini_token");
     state.me = null;
     render();
-    throw new Error("unauthorized");
+    throw new Error(data.error || "unauthorized");
   }
   if (!data.ok) throw new Error(data.error || "error");
   return data.data;
@@ -329,41 +344,61 @@ function render() {
 }
 
 function renderAuth() {
+  const reset = state.mode === "reset";
   root.innerHTML = `<div class="auth"><form class="card" id="auth">
     <div class="row"><h1 class="grow">${esc(t("app"))}</h1>
       <button type="button" id="lang" class="btn ghost">${esc(t("lang"))}</button></div>
     <p class="muted">${esc(t("or"))}</p>
-    <div class="tabs">
+    ${reset ? "" : `<div class="tabs">
       <button type="button" data-mode="login" class="${state.mode === "login" ? "on" : ""}">${esc(t("login"))}</button>
       <button type="button" data-mode="signup" class="${state.mode === "signup" ? "on" : ""}">${esc(t("signup"))}</button>
-    </div>
-    ${state.mode === "signup" ? `<label>${esc(t("name"))}<input name="displayName" required></label><label>${esc(t("username"))}<input name="username" required pattern="[a-z0-9._]{3,24}"></label><label>${esc(t("email"))}<input name="email" type="email"></label><label>${esc(t("phone"))}<input name="phone" inputmode="tel" placeholder="+98912…"></label>` : `<label>${esc(t("loginId"))}<input name="login" required autocomplete="username"></label>`}
-    <label>${esc(t("password"))}<input name="password" type="password" required minlength="8"></label>
-    ${state.challenge ? `<label>${esc(t("code"))}<input name="code" required inputmode="numeric"></label>` : ""}
-    <button class="btn full">${esc(state.mode === "signup" ? t("signup") : t("login"))}</button>
-    <p><button type="button" id="forgot" class="btn ghost">${esc(t("forgot"))}</button></p>
-    <div id="resetbox"></div>
+    </div>`}
+    ${state.mode === "signup" ? `<label>${esc(t("name"))}<input name="displayName" required maxlength="50"></label><label>${esc(t("username"))}<input name="username" required pattern="[a-z0-9._]{3,24}" autocomplete="username"></label><p class="muted">${esc(t("needOne"))}</p><label>${esc(t("email"))}<input name="email" type="email" autocomplete="email"></label><label>${esc(t("phone"))}<input name="phone" inputmode="tel" placeholder="0912… یا +98912…"></label><label>${esc(t("password"))}<input name="password" type="password" required minlength="8" autocomplete="new-password"></label><label>${esc(t("confirmPassword"))}<input name="confirmPassword" type="password" required minlength="8"></label>` : ""}
+    ${state.mode === "login" ? `<label>${esc(t("loginId"))}<input name="login" required autocomplete="username"></label><label>${esc(t("password"))}<input name="password" type="password" required minlength="8" autocomplete="current-password"></label>` : ""}
+    ${reset ? `<label>${esc(t("loginId"))}<input name="login" required value="${esc(state.resetLogin || "")}"></label>${state.resetSent ? `<p class="muted">${esc(t("sentCode"))}</p><label>${esc(t("code"))}<input name="token" required value="${esc(state.resetToken || "")}"></label><label>${esc(t("newPassword"))}<input name="password" type="password" required minlength="8"></label><label>${esc(t("confirmPassword"))}<input name="confirmPassword" type="password" required minlength="8"></label>` : ""}` : ""}
+    ${state.challenge ? `<label>${esc(t("code"))}<input name="code" required inputmode="numeric" autocomplete="one-time-code"></label>` : ""}
+    <button class="btn full">${esc(reset ? (state.resetSent ? t("save") : t("forgot")) : state.mode === "signup" ? t("signup") : t("login"))}</button>
+    ${reset ? `<p><button type="button" id="backlogin" class="btn ghost">${esc(t("login"))}</button></p>` : `<p><button type="button" id="forgot" class="btn ghost">${esc(t("forgot"))}</button></p>`}
   </form></div>`;
   root.querySelectorAll("[data-mode]").forEach((b) => { b.onclick = () => { state.mode = b.dataset.mode; state.challenge = null; renderAuth(); }; });
   root.querySelector("#lang").onclick = () => { state.locale = state.locale === "fa" ? "en" : "fa"; localStorage.setItem("nini_locale", state.locale); renderAuth(); };
-  root.querySelector("#forgot").onclick = async () => {
-    const email = (root.querySelector('[name="login"]') || root.querySelector('[name="email"]') || root.querySelector('[name="phone"]'))?.value || "";
-    try {
-      const res = await api("/auth/forgot", { login: email });
-      root.querySelector("#resetbox").innerHTML = `<label>${esc(t("code"))}<input id="token" value="${esc(res.devToken || "")}"></label><label>${esc(t("reset"))}<input id="np" type="password" minlength="8"></label><button type="button" id="doreset" class="btn">${esc(t("save"))}</button>`;
-      root.querySelector("#doreset").onclick = async () => {
-        await api("/auth/reset", { token: root.querySelector("#token").value, password: root.querySelector("#np").value });
-        toast("ok");
-      };
-    } catch (e) { toast(e.message); }
+  const back = root.querySelector("#backlogin");
+  if (back) back.onclick = () => { state.mode = "login"; state.resetSent = false; renderAuth(); };
+  const forgot = root.querySelector("#forgot");
+  if (forgot) forgot.onclick = () => {
+    state.resetLogin = root.querySelector('[name="login"]')?.value || "";
+    state.mode = "reset";
+    state.resetSent = false;
+    renderAuth();
   };
   root.querySelector("#auth").onsubmit = async (e) => {
     e.preventDefault();
     const payload = Object.fromEntries(new FormData(e.target).entries());
     try {
+      if (state.mode === "reset") {
+        if (!state.resetSent) {
+          state.resetLogin = payload.login || "";
+          const res = await api("/auth/forgot", { login: state.resetLogin });
+          state.resetSent = true;
+          state.resetToken = res.devToken || "";
+          renderAuth();
+          return;
+        }
+        if (payload.password !== payload.confirmPassword) { toast(t("mismatch")); return; }
+        await api("/auth/reset", { token: payload.token, password: payload.password });
+        state.mode = "login";
+        state.resetSent = false;
+        toast(t("passwordChanged"));
+        renderAuth();
+        return;
+      }
       if (state.challenge) {
         enter(await api("/auth/verify-2fa", { challenge: state.challenge, code: payload.code }));
         return;
+      }
+      if (state.mode === "signup") {
+        if (!(payload.email || "").trim() && !(payload.phone || "").trim()) { toast(t("needOne")); return; }
+        if (payload.password !== payload.confirmPassword) { toast(t("mismatch")); return; }
       }
       const path = state.mode === "signup" ? "/auth/register" : "/auth/login";
       const body = state.mode === "signup" ? payload : { login: payload.login, password: payload.password };
@@ -375,7 +410,7 @@ function renderAuth() {
         return;
       }
       enter(res);
-    } catch (err) { toast(err.message); }
+    } catch (err) { toast(t(err.message)); }
   };
 }
 
@@ -434,9 +469,18 @@ function paint() {
   paintMain();
   const av = document.getElementById("meav");
   if (av && state.me) {
-    if (state.me.avatarFile) av.setAttribute("data-av", state.me.avatarFile);
-    else av.removeAttribute("data-av");
-    if (!av.querySelector("img")) av.textContent = (state.me.displayName || "?").slice(0, 1);
+    const file = state.me.avatarFile || "";
+    if (file) {
+      if (av.getAttribute("data-av") !== file) {
+        av.innerHTML = "";
+        av.dataset.loaded = "";
+        av.setAttribute("data-av", file);
+      }
+    } else {
+      av.removeAttribute("data-av");
+      delete av.dataset.loaded;
+      av.textContent = (state.me.displayName || "?").slice(0, 1);
+    }
   }
   hydrateAvatars(document);
 }
@@ -1085,14 +1129,18 @@ function profileHtml() {
   const m = state.me;
   return `<form>
     <div class="av lg" id="bigav" ${m.avatarFile ? `data-av="${esc(m.avatarFile)}"` : ""}>${esc((m.displayName || "?").slice(0, 1))}</div>
-    <label>${esc(t("name"))}<input name="displayName" value="${esc(m.displayName)}"></label>
-    <label>${esc(t("username"))}<input name="username" value="${esc(m.username || "")}"></label>
-    <label>${esc(t("about"))}<input name="about" value="${esc(m.about || "")}"></label>
+    <label>${esc(t("name"))}<input name="displayName" required maxlength="50" value="${esc(m.displayName)}"></label>
+    <label>${esc(t("about"))}<input name="about" maxlength="140" value="${esc(m.about || "")}"></label>
+    <label>${esc(t("username"))}<input name="username" required pattern="[a-z0-9._]{3,24}" value="${esc(m.username || "")}"></label>
     <label>${esc(t("phone"))}<input name="phone" value="${esc(m.phone || "")}"></label>
-    <label>${esc(t("email"))}<input name="email" value="${esc(m.email || "")}"></label>
+    <label>${esc(t("email"))}<input name="email" type="email" value="${esc(m.email || "")}"></label>
+    ${privSelect("privacyPhoto", t("photo"), m.privacyPhoto)}
     <label>${esc(t("photo"))}<input id="photo" type="file" accept="image/*"></label>
+    ${m.avatarFile ? `<button class="btn ghost" type="button" id="delav">${esc(t("removePhoto"))}</button>` : ""}
+    <label>${esc(t("currentPassword"))}<input name="currentPassword" type="password" autocomplete="current-password"></label>
+    <label>${esc(t("newPassword"))}<input name="newPassword" type="password" minlength="8" autocomplete="new-password"></label>
+    <label>${esc(t("confirmPassword"))}<input name="confirmPassword" type="password" minlength="8"></label>
     <button class="btn" type="submit">${esc(t("save"))}</button>
-    <button class="btn ghost" type="button" id="delav">${esc(t("remove"))}</button>
   </form>`;
 }
 
@@ -1310,14 +1358,24 @@ async function submitPane(e) {
   const fd = Object.fromEntries(new FormData(e.target).entries());
   try {
     if (state.pane === "profile") {
-      state.me = await api("/me", fd);
+      const next = fd.newPassword || "";
+      if (next || fd.currentPassword) {
+        if (next.length < 8) { toast(t("weak_password")); return; }
+        if (next !== (fd.confirmPassword || "")) { toast(t("mismatch")); return; }
+      }
+      const profile = { ...fd };
+      delete profile.currentPassword;
+      delete profile.newPassword;
+      delete profile.confirmPassword;
+      state.me = await api("/me", profile);
+      if (next) await api("/me/password", { current: fd.currentPassword || "", next });
       state.ui++;
-      toast("ok");
+      toast(next ? t("passwordChanged") : t("ok"));
       paint();
     } else if (state.pane === "settings") {
       await saveFrom(fd, e.target);
     }
-  } catch (err) { toast(err.message); }
+  } catch (err) { toast(t(err.message)); }
 }
 
 async function saveFrom(fd, form) {
@@ -1348,8 +1406,10 @@ async function saveFrom(fd, form) {
 async function changePhoto(file) {
   if (!file) return;
   try {
+    const previous = state.me?.avatarFile;
     const up = await uploadFile(file);
     await api("/me/avatar", { fileId: up.id });
+    if (previous) blobCache.delete(previous);
     state.me = await api("/me");
     blobCache.delete(state.me.avatarFile);
     state.ui++;
@@ -1421,10 +1481,12 @@ document.addEventListener("click", async (e) => {
   }
   if (id === "install" && state.deferredInstall) state.deferredInstall.prompt();
   if (id === "delav") {
+    const previous = state.me?.avatarFile;
     await api("/me/avatar/delete", {});
+    if (previous) blobCache.delete(previous);
     state.me = await api("/me");
     state.ui++;
-    toast("ok");
+    toast(t("ok"));
     paint();
   }
   if (id === "block") {

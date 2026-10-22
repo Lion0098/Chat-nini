@@ -440,8 +440,10 @@ function require_user(): array
 
 function hash_password(string $password): string
 {
-    $algo = defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT;
-    return password_hash($password, $algo);
+    if (defined('PASSWORD_ARGON2ID')) {
+        return password_hash($password, PASSWORD_ARGON2ID, ['memory_cost' => 65536, 'time_cost' => 4, 'threads' => 1]);
+    }
+    return password_hash($password, PASSWORD_BCRYPT);
 }
 
 function rate_limit(string $bucket, int $limit, int $windowSec): void
@@ -468,9 +470,32 @@ function username_ok(string $name): bool
     return (bool) preg_match('/^[a-z0-9._]{3,24}$/', $name);
 }
 
+function normalize_phone(string $raw): string
+{
+    $raw = trim($raw);
+    if ($raw === '') {
+        return '';
+    }
+    $plus = str_starts_with($raw, '+');
+    $digits = preg_replace('/\D+/', '', $raw) ?? '';
+    if ($digits === '') {
+        return '';
+    }
+    if (str_starts_with($digits, '00')) {
+        $digits = substr($digits, 2);
+        $plus = true;
+    }
+    if (!$plus && str_starts_with($digits, '0')) {
+        $digits = '98' . substr($digits, 1);
+    } elseif (!$plus && preg_match('/^9\d{9}$/', $digits)) {
+        $digits = '98' . $digits;
+    }
+    return '+' . $digits;
+}
+
 function phone_ok(string $phone): bool
 {
-    return (bool) preg_match('/^\+?[0-9]{8,15}$/', $phone);
+    return (bool) preg_match('/^\+[1-9][0-9]{7,14}$/', normalize_phone($phone));
 }
 
 function email_ok(string $email): bool

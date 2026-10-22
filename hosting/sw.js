@@ -1,5 +1,5 @@
-const CACHE = "nini-shell-v2";
-const SHELL = ["/", "/assets/app.css?v=6", "/assets/app.js?v=6", "/manifest.webmanifest", "/favicon.svg"];
+const CACHE = "nini-shell-v3";
+const SHELL = ["/", "/assets/app.css?v=6", "/assets/app.js?v=7", "/manifest.webmanifest", "/favicon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
